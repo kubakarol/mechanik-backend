@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema({
   const serviceSchema = new mongoose.Schema({
     name: String,
     props: String,
+    description: String,
    });
    
   const Services = mongoose.model('Services', serviceSchema);
@@ -43,13 +44,28 @@ const userSchema = new mongoose.Schema({
   
   app.get('/carservicedb/services', async (req, res) => {
     try {
-      const services = await Services.find();
+      const services = await Services.find({}, 'name description props id');
       res.json(services);
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: 'Błąd pobierania users' });
     }
   });
+
+  app.get('/carservicedb/services/:id', async (req, res) => {
+    try {
+      const service = await Services.findById(req.params.id);
+      if (!service) {
+        return res.status(404).json({ message: 'Usługa nie została znaleziona' });
+      }
+      res.json(service);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Wystąpił błąd podczas pobierania usługi' });
+    }
+  });
+  
+
 
   app.post('/carservicedb/users', async (req, res) => {
     const { name, lastname, email, password } = req.body;
