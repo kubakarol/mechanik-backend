@@ -2,12 +2,20 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const jwt = require('jsonwebtoken');
+const secretKey = 'lalala123';
 
 const app = express();
 const port = 5500;
 
 app.use(bodyParser.json());
-app.use(cors());
+const corsOptions = {
+  origin: 'http://localhost:5173', 
+  optionsSuccessStatus: 200,
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 const mongoURI = "mongodb+srv://admin:admin@cluster0.yntaf1q.mongodb.net/carservicedb?retryWrites=true&w=majority";
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -73,19 +81,36 @@ app.get('/carservicedb/services/:id', async (req, res) => {
   }
 });
 
-// Dodaj trasę dla obecnego użytkownika (zakładam pierwszego znalezionego użytkownika)
+app.post('/carservicedb/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+      const user = await Users.findOne({ email, password });
+      if (!user) {
+          return res.status(404).json({ message: 'Nieprawidłowy email lub hasło.' });
+      }
+      const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
+      res.json({ user: user, token: token });
+  } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Błąd logowania.' });
+  }
+});
+
 app.get('/carservicedb/currentUser', async (req, res) => {
   try {
-    const user = await Users.findOne(); // Pobiera pierwszego użytkownika
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.verify(token, secretKey);
+    const user = await Users.findById(decoded.userId);
     if (!user) {
       return res.status(404).json({ message: 'Użytkownik nie został znaleziony' });
     }
     res.json(user);
-  } catch (err) {
-    console.error('Błąd pobierania użytkownika:', err);
-    res.status(500).json({ message: 'Błąd pobierania danych użytkownika' });
+  } catch (error) {
+    console.error('Błąd pobierania danych użytkownika:', error);
+    res.status(500).json({ message: 'Błąd pobierania danych użytkownika', error: error.message });
   }
 });
+
 
 app.post('/carservicedb/reservations', async (req, res) => {
   try {
