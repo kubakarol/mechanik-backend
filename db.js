@@ -158,6 +158,17 @@ app.post('/carservicedb/reservations', async (req, res) => {
   }
 });
 
+app.get('/carservicedb/reservations/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const reservations = await Reservation.find({ userId: userId });
+    res.json(reservations);
+  } catch (error) {
+    console.error('Error fetching reservations:', error);
+    res.status(500).json({ message: 'Error fetching reservations' });
+  }
+});
+
 app.post('/carservicedb/users', async (req, res) => {
   const { name, lastname, email, password } = req.body;
   const newUser = new Users({
