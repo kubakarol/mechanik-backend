@@ -34,6 +34,7 @@ const serviceSchema = new mongoose.Schema({
   name: String,
   props: String,
   description: String,
+  city: String,
 });
 const Services = mongoose.model('Services', serviceSchema);
 
@@ -60,7 +61,7 @@ app.get('/carservicedb/users', async (req, res) => {
 
 app.get('/carservicedb/services', async (req, res) => {
   try {
-    const services = await Services.find({}, 'name description props id');
+    const services = await Services.find({}, 'name description props id city');
     res.json(services);
   } catch (err) {
     console.error(err);
@@ -78,6 +79,32 @@ app.get('/carservicedb/services/:id', async (req, res) => {
   } catch (err) {
     console.error('Błąd pobierania usługi:', err);
     res.status(500).json({ message: 'Wystąpił błąd podczas pobierania usługi' });
+  }
+});
+
+app.post('/carservicedb/addServices', async (req, res) => {
+  try {
+    const newService = new Services(req.body);
+    const savedService = await newService.save();
+    res.status(201).json(savedService);
+  } catch (error) {
+    console.error('Error adding service:', error);
+    res.status(500).send('Error adding service');
+  }
+});
+
+app.delete('/carservicedb/deleteServices/:id', async (req, res) => {
+  try {
+    const serviceId = req.params.id;
+    const deletedService = await Services.findByIdAndDelete(serviceId);
+    if (deletedService) {
+      res.status(200).json({ message: 'Service deleted successfully' });
+    } else {
+      res.status(404).send('Service not found');
+    }
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    res.status(500).send('Error deleting service');
   }
 });
 
