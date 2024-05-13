@@ -61,14 +61,19 @@ app.get('/carservicedb/users', async (req, res) => {
 });
 
 app.get('/carservicedb/services', async (req, res) => {
+    let query = {};
+    if (req.query.city) {
+        query.city = req.query.city;
+    }
     try {
-        const services = await Services.find({}, 'name description props city imagePath');
+        const services = await Services.find(query, 'name description props city imagePath');
         res.json(services);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Błąd pobierania usług' });
+        console.error('Error fetching services:', err);
+        res.status(500).json({ message: 'Error fetching services' });
     }
 });
+
 
 app.get('/carservicedb/services/:id', async (req, res) => {
     try {
@@ -80,6 +85,16 @@ app.get('/carservicedb/services/:id', async (req, res) => {
     } catch (err) {
         console.error('Błąd pobierania usługi:', err);
         res.status(500).json({ message: 'Wystąpił błąd podczas pobierania usługi' });
+    }
+});
+
+app.get('/carservicedb/cities', async (req, res) => {
+    try {
+        const cities = await Services.distinct("city");
+        res.json(cities);
+    } catch (error) {
+        console.error('Error fetching cities:', error);
+        res.status(500).json({ message: 'Error fetching cities' });
     }
 });
 
