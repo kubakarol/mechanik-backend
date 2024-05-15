@@ -3,8 +3,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const storage = multer.memoryStorage(); // Use memory storage to process image before saving
+const upload = multer({ storage: storage });
 const jwt = require('jsonwebtoken');
+const sharp = require('sharp'); // Import sharp
+const fs = require('fs'); // Required for file system operations
+const path = require('path'); // Required to handle file paths
+
 const secretKey = 'lalala123';
 
 const app = express();
@@ -74,7 +79,6 @@ app.get('/carservicedb/services', async (req, res) => {
     }
 });
 
-
 app.get('/carservicedb/services/:id', async (req, res) => {
     try {
         const service = await Services.findById(req.params.id);
@@ -101,7 +105,20 @@ app.get('/carservicedb/cities', async (req, res) => {
 app.post('/carservicedb/addServices', upload.single('image'), async (req, res) => {
     const { name, props, description, city } = req.body;
     const propsArray = JSON.parse(props); // Parse props as they are sent as JSON string
-    const imagePath = req.file ? req.file.path : '';
+    let imagePath = '';
+
+    // Process the image if it exists
+    if (req.file) {
+        const filename = `service-${Date.now()}.jpg`;
+        imagePath = path.join(__dirname, 'uploads', filename);
+
+        // Use sharp to convert and save the image
+        await sharp(req.file.buffer)
+            .resize(1024) // Optional: Resize to width of 1024px while keeping aspect ratio
+            .jpeg({ quality: 90 }) // Set JPEG quality
+            .toFile(imagePath);
+    }
+
     try {
         const newService = new Services({ name, props: propsArray, description, city, imagePath });
         const savedService = await newService.save();
@@ -181,27 +198,9 @@ app.get('/carservicedb/reservations/:userId', async (req, res) => {
     try {
         const reservations = await Reservation.find({ userId: userId });
         res.json(reservations);
-    } catch (error) {
+    } catch (error) { // Replace "catchError" with "catch" and add curly braces
         console.error('Error fetching reservations:', error);
         res.status(500).json({ message: 'Error fetching reservations' });
-    }
-});
-
-app.post('/carservicedb/users', async (req, res) => {
-    const { name, lastname, email, password } = req.body;
-    const newUser = new Users({
-        name,
-        lastname,
-        email,
-        password,
-    });
-
-    try {
-        const savedUser = await newUser.save();
-        res.json(savedUser);
-    } catch (error) {
-        console.error('Błąd dodawania użytkownika:', error);
-        res.status(500).json({ message: 'Błąd dodawania użytkownika' });
     }
 });
 
