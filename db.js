@@ -27,6 +27,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const mongoURI = "mongodb+srv://admin:admin@cluster0.yntaf1q.mongodb.net/carservicedb?retryWrites=true&w=majority";
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
 
+// SCHEMAS
+
 const userSchema = new mongoose.Schema({
   name: String,
   lastname: String,
@@ -58,6 +60,8 @@ const Reservation = mongoose.model('Reservations', reservationSchema);
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+//  USERS/LOGIN
+
 app.get('/carservicedb/users', async (req, res) => {
   try {
     const users = await Users.find();
@@ -67,6 +71,38 @@ app.get('/carservicedb/users', async (req, res) => {
     res.status(500).json({ message: 'Błąd pobierania użytkowników' });
   }
 });
+
+app.post('/carservicedb/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await Users.findOne({ email, password });
+    if (!user) {
+      return res.status(404).json({ message: 'Nieprawidłowy email lub hasło.' });
+    }
+    const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
+    res.json({ user: user, token: token });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Błąd logowania.' });
+  }
+});
+
+app.get('/carservicedb/currentUser', async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(' ')[1];
+    const decoded = jwt.verify(token, secretKey);
+    const user = await Users.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Użytkownik nie został znaleziony' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Błąd pobierania danych użytkownika:', error);
+    res.status(500).json({ message: 'Błąd pobierania danych użytkownika', error: error.message });
+  }
+});
+
+//  SERVICES
 
 app.get('/carservicedb/services', async (req, res) => {
   let query = {};
@@ -157,35 +193,7 @@ app.delete('/carservicedb/deleteServices/:id', async (req, res) => {
   }
 });
 
-app.post('/carservicedb/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await Users.findOne({ email, password });
-    if (!user) {
-      return res.status(404).json({ message: 'Nieprawidłowy email lub hasło.' });
-    }
-    const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
-    res.json({ user: user, token: token });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Błąd logowania.' });
-  }
-});
-
-app.get('/carservicedb/currentUser', async (req, res) => {
-  try {
-    const token = req.headers.authorization.split(' ')[1];
-    const decoded = jwt.verify(token, secretKey);
-    const user = await Users.findById(decoded.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'Użytkownik nie został znaleziony' });
-    }
-    res.json(user);
-  } catch (error) {
-    console.error('Błąd pobierania danych użytkownika:', error);
-    res.status(500).json({ message: 'Błąd pobierania danych użytkownika', error: error.message });
-  }
-});
+//  RESERVATIONS
 
 app.post('/carservicedb/reservations', async (req, res) => {
   try {
@@ -214,6 +222,23 @@ app.get('/carservicedb/reservations/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching reservations:', error);
     res.status(500).json({ message: 'Error fetching reservations' });
+  }
+});
+
+app.delete('/carservicedb/cancelReservation/:id', async (req, res) => {
+  try{
+  const reservationId = req.params.id; 
+  const reservation = await Reservation.findByIdAndDelete(reservationId);
+
+    if(reservation){
+      res.status(200).json({message: "Reservation cancelled succefully"})
+    }else{
+      res.status(404).json({message: "Reservation not found"})
+    }
+  }
+  catch(error){
+    console.log("Error while cancelling: ", error)
+    res.status(500).json({message:'Error cancelling reservation'})
   }
 });
 
