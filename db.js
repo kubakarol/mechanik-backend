@@ -25,7 +25,7 @@ app.use(cors(corsOptions));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const mongoURI = "mongodb+srv://admin:admin@cluster0.yntaf1q.mongodb.net/carservicedb?retryWrites=true&w=majority";
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(mongoURI);
 
 // SCHEMAS
 
@@ -60,7 +60,7 @@ const Reservation = mongoose.model('Reservations', reservationSchema);
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-//  USERS/LOGIN
+//  USERS/LOGIN/REGSITER
 
 app.get('/carservicedb/users', async (req, res) => {
   try {
